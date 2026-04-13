@@ -555,24 +555,45 @@ PycRef<ASTNode> BuildFromCode(PycRef<PycCode> code, PycModule* mod)
             {
                 PycRef<ASTNode> kw = stack.top();
                 stack.pop();
-                int kwparams = (operand & 0xFF00) >> 8;
-                int pparams = (operand & 0xFF);
                 ASTCall::kwparam_t kwparamList;
                 ASTCall::pparam_t pparamList;
-                for (int i=0; i<kwparams; i++) {
-                    PycRef<ASTNode> val = stack.top();
-                    stack.pop();
-                    PycRef<ASTNode> key = stack.top();
-                    stack.pop();
-                    kwparamList.push_front(std::make_pair(key, val));
+                int kwparams, pparams;
+                if (mod->verCompare(3, 9) >= 0) {
+                    if (kw.type() != ASTNode::NODE_OBJECT) {
+                        fprintf(stderr, "Something TERRIBLE happened!!\n");
+                        break;
+                    }
+                    PycRef<PycObject> kw_obj = kw.cast<ASTObject>()->object();
+                    if (kw_obj.type() != PycObject::TYPE_TUPLE && kw_obj.type() != PycObject::TYPE_SMALL_TUPLE) {
+                        fprintf(stderr, "Something TERRIBLE happened!!\n");
+                        break;
+                    }
+                    const auto& kw_names = kw_obj.cast<PycTuple>()->values();
+                    kwparams = static_cast<int>(kw_names.size());
+                    pparams = operand - kwparams;
+                    for (int i = kwparams - 1; i >= 0; i--) {
+                        PycRef<ASTNode> val = stack.top();
+                        stack.pop();
+                        PycRef<ASTNode> key = new ASTObject(kw_names[i]);
+                        kwparamList.push_front(std::make_pair(key, val));
+                    }
+                } else {
+                    kwparams = (operand & 0xFF00) >> 8;
+                    pparams = (operand & 0xFF);
+                    for (int i = 0; i < kwparams; i++) {
+                        PycRef<ASTNode> val = stack.top();
+                        stack.pop();
+                        PycRef<ASTNode> key = stack.top();
+                        stack.pop();
+                        kwparamList.push_front(std::make_pair(key, val));
+                    }
                 }
-                for (int i=0; i<pparams; i++) {
+                for (int i = 0; i < pparams; i++) {
                     pparamList.push_front(stack.top());
                     stack.pop();
                 }
                 PycRef<ASTNode> func = stack.top();
                 stack.pop();
-
                 PycRef<ASTNode> call = new ASTCall(func, pparamList, kwparamList);
                 call.cast<ASTCall>()->setKW(kw);
                 stack.push(call);
@@ -588,14 +609,14 @@ PycRef<ASTNode> BuildFromCode(PycRef<PycCode> code, PycModule* mod)
                 int pparams = (operand & 0xFF);
                 ASTCall::kwparam_t kwparamList;
                 ASTCall::pparam_t pparamList;
-                for (int i=0; i<kwparams; i++) {
+                for (int i = 0; i < kwparams; i++) {
                     PycRef<ASTNode> val = stack.top();
                     stack.pop();
                     PycRef<ASTNode> key = stack.top();
                     stack.pop();
                     kwparamList.push_front(std::make_pair(key, val));
                 }
-                for (int i=0; i<pparams; i++) {
+                for (int i = 0; i < pparams; i++) {
                     pparamList.push_front(stack.top());
                     stack.pop();
                 }
