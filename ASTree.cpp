@@ -2153,6 +2153,10 @@ PycRef<ASTNode> BuildFromCode(PycRef<PycCode> code, PycModule* mod)
                                    && !curblock->inited()) {
                         curblock.cast<ASTWithBlock>()->setExpr(value);
                         curblock.cast<ASTWithBlock>()->setVar(name);
+                    } else if (stack.top().type() == ASTNode::NODE_IMPORT) {
+                        PycRef<ASTImport> import = stack.top().cast<ASTImport>();
+
+                        import->add_store(new ASTStore(value, name));
                     } else if (value.type() == ASTNode::NODE_CHAINSTORE) {
                         append_to_chain_store(value, name, stack, curblock);
                     } else {
