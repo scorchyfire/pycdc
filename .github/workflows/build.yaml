@@ -1,15 +1,16 @@
 name: Compile pycdc for Windows & Linux
 on:
   push:
+  pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  build-job:
+  build-windows:
     if: github.repository == 'scorchyfire/pycdc'
     runs-on: ubuntu-22.04
-    permissions:
-      contents: write
-      
     steps:
       - name: Checkout pycdc
         uses: actions/checkout@v4
@@ -24,8 +25,6 @@ jobs:
       - name: Compile
         run: >
           cd pycdc
-          
-          echo "RELEASE_COMMIT=$(git log -1 --format=%h)" >> ${GITHUB_ENV}
 
           cmake -DCMAKE_SYSTEM_NAME=Windows
           -DCMAKE_C_COMPILER=i686-w64-mingw32-gcc
@@ -39,32 +38,23 @@ jobs:
           
           make
 
-      - name: Set release date & time
-        run: |
-          echo "RELEASE_DATE=$(date -u +%d-%b-%Y)" >> ${GITHUB_ENV}
-          echo "RELEASE_TIME=$(date -u +%H:%M)" >> ${GITHUB_ENV}
-
-#       - name: Upload artifact
-#         uses: actions/upload-artifact@v3
-#         with:
-#           name: pycdc
-#           path: |
-#             pycdc/pycdc.exe
-#             pycdc/pycdas.exe
-            
-      - name: Create release Windows
-        uses: ncipollo/release-action@v1
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
         with:
-          owner: scorchyfire
-          repo: pycdc
-          name: Decompyle++ ${{ env.RELEASE_DATE }}
-          tag: build-${{ env.RELEASE_DATE }}-${{ env.RELEASE_COMMIT }}
-          body: Compiled on ${{ env.RELEASE_DATE }} at ${{ env.RELEASE_TIME }} GMT, pycdc commit ${{ env.RELEASE_COMMIT }}
-          artifacts: "pycdc/pycdc.exe,pycdc/pycdas.exe"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          allowUpdates: true
-          draft: true
+          name: pycdc-windows
+          path: |
+            pycdc/pycdc.exe
+            pycdc/pycdas.exe
+          if-no-files-found: error
 
+  build-linux-x86_64:
+    if: github.repository == 'scorchyfire/pycdc'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout pycdc
+        uses: actions/checkout@v4
+        with:
+          path: pycdc
 
       - name: Setup latest Alpine Linux x86_64
         uses: jirutka/setup-alpine@v1
@@ -86,18 +76,23 @@ jobs:
           mv pycdas pycdas.x86_64
         shell: alpine.sh {0}
 
-      - name: Create release Linux x86_64
-        uses: ncipollo/release-action@v1
+      - name: Upload Linux x86_64 artifacts
+        uses: actions/upload-artifact@v4
         with:
-          owner: scorchyfire
-          repo: pycdc
-          name: Decompyle++ ${{ env.RELEASE_DATE }}
-          tag: build-${{ env.RELEASE_DATE }}-${{ env.RELEASE_COMMIT }}
-          body: Compiled on ${{ env.RELEASE_DATE }} at ${{ env.RELEASE_TIME }} GMT, pycdc commit ${{ env.RELEASE_COMMIT }}
-          artifacts: "pycdc/pycdc.x86_64,pycdc/pycdas.x86_64"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          allowUpdates: true
-          draft: true
+          name: pycdc-linux-x86_64
+          path: |
+            pycdc/pycdc.x86_64
+            pycdc/pycdas.x86_64
+          if-no-files-found: error
+
+  build-linux-aarch64:
+    if: github.repository == 'scorchyfire/pycdc'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout pycdc
+        uses: actions/checkout@v4
+        with:
+          path: pycdc
 
       - name: Setup latest Alpine Linux aarch64
         uses: jirutka/setup-alpine@v1        
@@ -120,15 +115,54 @@ jobs:
           mv pycdas pycdas.aarch64
         shell: alpine.sh {0}        
 
-      - name: Create release Linux aarch64
+      - name: Upload Linux aarch64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pycdc-linux-aarch64
+          path: |
+            pycdc/pycdc.aarch64
+            pycdc/pycdas.aarch64
+          if-no-files-found: error
+
+  publish:
+    if: github.repository == 'scorchyfire/pycdc' && github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs:
+      - build-windows
+      - build-linux-x86_64
+      - build-linux-aarch64
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: pycdc-windows
+          path: dist/windows
+
+      - name: Download Linux x86_64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: pycdc-linux-x86_64
+          path: dist/linux-x86_64
+
+      - name: Download Linux aarch64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: pycdc-linux-aarch64
+          path: dist/linux-aarch64
+
+      - name: Create release
         uses: ncipollo/release-action@v1
         with:
           owner: scorchyfire
           repo: pycdc
-          name: Decompyle++ ${{ env.RELEASE_DATE }}
-          tag: build-${{ env.RELEASE_DATE }}-${{ env.RELEASE_COMMIT }}
-          body: Compiled on ${{ env.RELEASE_DATE }} at ${{ env.RELEASE_TIME }} GMT, pycdc commit ${{ env.RELEASE_COMMIT }}
-          artifacts: "pycdc/pycdc.aarch64,pycdc/pycdas.aarch64"
+          name: Decompyle++ v0.0.${{ github.run_number }}
+          tag: v0.0.${{ github.run_number }}
+          body: |
+            Automated release from workflow run ${{ github.run_number }}.
+            Commit: ${{ github.sha }}
+          artifacts: "dist/windows/pycdc.exe,dist/windows/pycdas.exe,dist/linux-x86_64/pycdc.x86_64,dist/linux-x86_64/pycdas.x86_64,dist/linux-aarch64/pycdc.aarch64,dist/linux-aarch64/pycdas.aarch64"
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
-          draft: true
+          draft: false
