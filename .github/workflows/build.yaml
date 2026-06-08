@@ -7,6 +7,8 @@ jobs:
   build-job:
     if: github.repository == 'scorchyfire/pycdc'
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
       
     steps:
       - name: Checkout pycdc
