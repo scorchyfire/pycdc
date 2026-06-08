@@ -1,0 +1,10 @@
+/tmp/workspace/scorchyfire/pycdc/build-debug/CMakeFiles/pycxx.dir
+/tmp/workspace/scorchyfire/pycdc/build-debug/CMakeFiles/pycdas.dir
+/tmp/workspace/scorchyfire/pycdc/build-debug/CMakeFiles/pycdc.dir
+/tmp/workspace/scorchyfire/pycdc/build-debug/CMakeFiles/check.dir
+/tmp/workspace/scorchyfire/pycdc/build-debug/CMakeFiles/edit_cache.dir
+/tmp/workspace/scorchyfire/pycdc/build-debug/CMakeFiles/rebuild_cache.dir
+/tmp/workspace/scorchyfire/pycdc/build-debug/CMakeFiles/list_install_components.dir
+/tmp/workspace/scorchyfire/pycdc/build-debug/CMakeFiles/install.dir
+/tmp/workspace/scorchyfire/pycdc/build-debug/CMakeFiles/install/local.dir
+/tmp/workspace/scorchyfire/pycdc/build-debug/CMakeFiles/install/strip.dir
